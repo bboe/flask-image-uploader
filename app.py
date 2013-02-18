@@ -64,6 +64,8 @@ def save_normalized_image(path, data):
         raise
         return False
     image.thumbnail(MAX_IMAGE_SIZE, Image.ANTIALIAS)
+    if image.mode != 'RGB':
+        image = image.convert('RGB')
     image.save(path)
     return True
 
