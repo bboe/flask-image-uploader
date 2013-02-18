@@ -2,17 +2,20 @@
 import flask
 import redis
 import os
+from shutil import rmtree
 from hashlib import sha1
 from stat import S_ISREG, ST_CTIME, ST_MODE
 
 
 DATA_DIR = 'data'
+MAX_IMAGES = 10
 
 app = flask.Flask(__name__, static_folder=DATA_DIR)
 red = redis.from_url(os.getenv('REDISTOGO_URL', 'redis://localhost:6379'))
 
 
 try:
+    rmtree(DATA_DIR, True)
     os.mkdir(DATA_DIR)
 except OSError:
     pass
@@ -53,9 +56,14 @@ def home():
         filepath = os.path.join(DATA_DIR, filename)
         file_stat = os.stat(filepath)
         if S_ISREG(file_stat[ST_MODE]):
-            image_infos.append((file_stat[ST_CTIME], filepath, filename[:-4]))
-    images = '\n'.join('<div id="{0}"><img src="{1}" /></div>'.format(x[2], x[1])
-                       for x in sorted(image_infos, reverse=True))
+            image_infos.append((file_stat[ST_CTIME], filepath))
+
+    images = []
+    for i, (_, path) in enumerate(sorted(image_infos, reverse=True)):
+        if i >= MAX_IMAGES:
+            os.unlink(path)
+            continue
+        images.append('<img src="{0}" /></div>'.format(path))
     return """
 <!doctype html>
 <title>Image Uploader</title>
@@ -96,9 +104,9 @@ def home():
   });
   sse();
 </script>
-""" % images
+""" % '\n'.join(images)
 
 
 if __name__ == '__main__':
-    #app.debug = True
+    app.debug = True
     app.run('0.0.0.0', threaded=True)
