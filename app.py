@@ -2,12 +2,14 @@
 import flask
 import redis
 import os
+from gevent import Timeout
 from shutil import rmtree
 from hashlib import sha1
 from stat import S_ISREG, ST_CTIME, ST_MODE
 
 
 DATA_DIR = 'data'
+KEEP_ALIVE_DELAY = 45
 MAX_IMAGES = 10
 
 app = flask.Flask(__name__, static_folder=DATA_DIR)
@@ -23,11 +25,14 @@ except OSError:
 
 def event_stream():
     pubsub = red.pubsub()
-    pubsub.subscribe('processed')
-    for message in pubsub.listen():
-        print message
-        if message['type'] == 'message':
-            yield 'data: {0}\n\n'.format(message['data'])
+    while True:
+        with Timeout(KEEP_ALIVE_DELAY, False):
+            pubsub.subscribe('processed')
+            for message in pubsub.listen():
+                print message
+                if message['type'] == 'message':
+                    yield 'data: {0}\n\n'.format(message['data'])
+        yield 'data: \n\n'
 
 
 @app.route('/post', methods=['POST'])
@@ -88,6 +93,8 @@ def home():
   function sse() {
       var source = new EventSource('/stream');
       source.onmessage = function(e) {
+          if (e.data == '')
+              return;
           console.log(e.data);
           var image = $('<img>', {src: e.data}).hide();
           $('#images').prepend(image);
