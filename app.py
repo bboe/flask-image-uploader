@@ -82,8 +82,11 @@ def event_stream(client):
 def post():
     sha1sum = sha1(flask.request.data).hexdigest()
     target = os.path.join(DATA_DIR, '{0}.jpg'.format(sha1sum))
-    if save_normalized_image(target, flask.request.data):
-        broadcast(target)  # Notify subscribers of completion
+    try:
+        if save_normalized_image(target, flask.request.data):
+            broadcast(target)  # Notify subscribers of completion
+    except Exception as e:  # Output errors
+        print e
     return ''
 
 
