@@ -1,8 +1,8 @@
-#!/usr/bin/env python
 import flask
-import redis
+import gevent
 import os
-from gevent import Timeout
+from gevent.event import AsyncResult, Timeout
+from gevent.queue import Empty, Queue
 from shutil import rmtree
 from hashlib import sha1
 from stat import S_ISREG, ST_CTIME, ST_MODE
@@ -13,26 +13,50 @@ KEEP_ALIVE_DELAY = 45
 MAX_IMAGES = 10
 
 app = flask.Flask(__name__, static_folder=DATA_DIR)
-red = redis.from_url(os.getenv('REDISTOGO_URL', 'redis://localhost:6379'))
+broadcast_queue = Queue()
 
 
-try:
+try:  # Reset saved files on each start
     rmtree(DATA_DIR, True)
     os.mkdir(DATA_DIR)
 except OSError:
     pass
 
 
-def event_stream():
-    pubsub = red.pubsub()
+def broadcast(message):
+    """Notify all waiting waiting gthreads of message."""
+    waiting = []
+    try:
+        while True:
+            waiting.append(broadcast_queue.get(block=False))
+    except Empty:
+        pass
+    print('Broadcasting {0} messages'.format(len(waiting)))
+    for item in waiting:
+        item.set(message)
+
+
+def receive():
+    """Generator that yields a message at least every KEEP_ALIVE_DELAY seconds.
+
+    yields messages sent by `broadcast`.
+
+    """
+    tmp = None
     while True:
-        with Timeout(KEEP_ALIVE_DELAY, False):
-            pubsub.subscribe('processed')
-            for message in pubsub.listen():
-                print message
-                if message['type'] == 'message':
-                    yield 'data: {0}\n\n'.format(message['data'])
-        yield 'data: \n\n'
+        if not tmp:
+            tmp = AsyncResult()
+            broadcast_queue.put(tmp)
+        try:
+            yield tmp.get(timeout=5)
+            tmp = None
+        except Timeout:
+            yield ''
+
+
+def event_stream():
+    for message in receive():
+        yield 'data: {0}\n\n'.format(message)
 
 
 @app.route('/post', methods=['POST'])
@@ -42,8 +66,7 @@ def post():
     if not os.path.isfile(target):  # Save the file to disk
         with open(target, 'wb') as fp:
             fp.write(flask.request.data)
-    # Notify subscribers of completion
-    red.publish('processed', target)
+    broadcast(target)  # Notify subscribers of completion
     return ''
 
 

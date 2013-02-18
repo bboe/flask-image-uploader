@@ -5,5 +5,4 @@ argparse==1.2.1
 gevent==0.13.8
 greenlet==0.4.0
 gunicorn==0.17.2
-redis==2.7.2
 wsgiref==0.1.2
