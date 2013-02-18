@@ -125,8 +125,12 @@ def home():
   }
 </style>
 <h3>Image Uploader</h3>
-<p>Image: <input id="file" type="file" /></p>
-<h3>Uploaded Image</h3>
+<p>Upload an image for everyone to see. Valid images are pushed to everyone
+currently connected, and only the most recent 10 images are saved.</p>
+<noscript>Note: You must have javascript enabled in order to upload and
+dynamically view new images.</noscript>
+<p>Select an image: <input id="file" type="file" /></p>
+<h3>Uploaded Images (updated in real-time)</h3>
 <div id="images">%s</div>
 <script>
   function sse() {
