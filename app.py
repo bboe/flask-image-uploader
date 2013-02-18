@@ -48,15 +48,18 @@ def receive():
             tmp = AsyncResult()
             broadcast_queue.put(tmp)
         try:
-            yield tmp.get(timeout=5)
+            yield tmp.get(timeout=KEEP_ALIVE_DELAY)
             tmp = None
         except Timeout:
             yield ''
 
 
-def event_stream():
-    for message in receive():
-        yield 'data: {0}\n\n'.format(message)
+def event_stream(client):
+    try:
+        for message in receive():
+            yield 'data: {0}\n\n'.format(message)
+    finally:
+        print('{0} disconnected from stream'.format(client))
 
 
 @app.route('/post', methods=['POST'])
@@ -72,8 +75,8 @@ def post():
 
 @app.route('/stream')
 def stream():
-    return flask.Response(event_stream(),
-                          mimetype="text/event-stream")
+    return flask.Response(event_stream(flask.request.remote_addr),
+                          mimetype='text/event-stream')
 
 
 @app.route('/')
