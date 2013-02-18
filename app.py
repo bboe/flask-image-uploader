@@ -116,17 +116,24 @@ def home():
 <script src="//ajax.googleapis.com/ajax/libs/jqueryui/1.10.1/jquery-ui.min.js"></script>
 <style>
   body {
-    max-width: 500px;
+    max-width: 800px;
     margin: auto;
     padding: 1em;
     background: black;
     color: #fff;
     font: 16px/1.6 menlo, monospace;
+    text-align:center;
+  }
+
+  a {
+    color: #fff;
   }
 </style>
 <h3>Image Uploader</h3>
 <p>Upload an image for everyone to see. Valid images are pushed to everyone
-currently connected, and only the most recent 10 images are saved.</p>
+currently connected, and only the most recent %s images are saved.</p>
+<p>The complete source for this Flask web service can be found at:
+<a href="https://github.com/bboe/flask-image-uploader/blob/master/app.py">https://github.com/bboe/flask-image-uploader/blob/master/app.py</a></p>
 <noscript>Note: You must have javascript enabled in order to upload and
 dynamically view new images.</noscript>
 <p>Select an image: <input id="file" type="file" /></p>
@@ -155,7 +162,10 @@ dynamically view new images.</noscript>
   });
   sse();
 </script>
-""" % '\n'.join(images)
+""" % (MAX_IMAGES, '\n'.join(images))
+
+
+
 
 
 if __name__ == '__main__':
