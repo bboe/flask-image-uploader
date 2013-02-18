@@ -1,5 +1,6 @@
 Flask==0.9
 Jinja2==2.6
+-e hg+https://bitbucket.org/etienned/pil-2009-raclette/@55d24e80a982b6180464d6bf1125e021b4b0cbf1#egg=PIL-dev
 Werkzeug==0.8.3
 argparse==1.2.1
 gevent==0.13.8

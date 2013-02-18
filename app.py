@@ -1,5 +1,5 @@
+from PIL import Image, ImageFile
 import flask
-import gevent
 import os
 from gevent.event import AsyncResult, Timeout
 from gevent.queue import Empty, Queue
@@ -10,6 +10,7 @@ from stat import S_ISREG, ST_CTIME, ST_MODE
 
 DATA_DIR = 'data'
 KEEP_ALIVE_DELAY = 45
+MAX_IMAGE_SIZE = 800, 600
 MAX_IMAGES = 10
 
 app = flask.Flask(__name__, static_folder=DATA_DIR)
@@ -54,6 +55,19 @@ def receive():
             yield ''
 
 
+def save_normalized_image(path, data):
+    image_parser = ImageFile.Parser()
+    try:
+        image_parser.feed(data)
+        image = image_parser.close()
+    except IOError:
+        raise
+        return False
+    image.thumbnail(MAX_IMAGE_SIZE, Image.ANTIALIAS)
+    image.save(path)
+    return True
+
+
 def event_stream(client):
     try:
         for message in receive():
@@ -66,10 +80,8 @@ def event_stream(client):
 def post():
     sha1sum = sha1(flask.request.data).hexdigest()
     target = os.path.join(DATA_DIR, '{0}.jpg'.format(sha1sum))
-    if not os.path.isfile(target):  # Save the file to disk
-        with open(target, 'wb') as fp:
-            fp.write(flask.request.data)
-    broadcast(target)  # Notify subscribers of completion
+    if save_normalized_image(target, flask.request.data):
+        broadcast(target)  # Notify subscribers of completion
     return ''
 
 
@@ -94,7 +106,8 @@ def home():
         if i >= MAX_IMAGES:
             os.unlink(path)
             continue
-        images.append('<img src="{0}" /></div>'.format(path))
+        images.append('<div><img alt="User uploaded image" src="{0}" /></div>'
+                      .format(path))
     return """
 <!doctype html>
 <title>Image Uploader</title>
@@ -122,8 +135,9 @@ def home():
           if (e.data == '')
               return;
           console.log(e.data);
-          var image = $('<img>', {src: e.data}).hide();
-          $('#images').prepend(image);
+          var image = $('<img>', {alt: 'User uploaded image', src: e.data}).hide();
+          var container = $('<div>', {html: image});
+          $('#images').prepend(container);
           image.load(function(){
               image.show('blind', {}, 1000);
           });
