@@ -1,6 +1,6 @@
-from PIL import Image, ImageFile
 import flask
 import os
+from PIL import Image, ImageFile
 from gevent.event import AsyncResult, Timeout
 from gevent.queue import Empty, Queue
 from shutil import rmtree
@@ -133,7 +133,7 @@ def home():
 <p>Upload an image for everyone to see. Valid images are pushed to everyone
 currently connected, and only the most recent %s images are saved.</p>
 <p>The complete source for this Flask web service can be found at:
-<a href="https://github.com/bboe/flask-image-uploader/blob/master/app.py">https://github.com/bboe/flask-image-uploader/blob/master/app.py</a></p>
+<a href="https://github.com/bboe/flask-image-uploader">https://github.com/bboe/flask-image-uploader</a></p>
 <noscript>Note: You must have javascript enabled in order to upload and
 dynamically view new images.</noscript>
 <p>Select an image: <input id="file" type="file" /></p>
@@ -163,9 +163,6 @@ dynamically view new images.</noscript>
   sse();
 </script>
 """ % (MAX_IMAGES, '\n'.join(images))
-
-
-
 
 
 if __name__ == '__main__':
