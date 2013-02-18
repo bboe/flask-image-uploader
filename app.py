@@ -146,11 +146,11 @@ dynamically view new images.</noscript>
           if (e.data == '')
               return;
           console.log(e.data);
-          var image = $('<img>', {alt: 'User uploaded image', src: e.data}).hide();
-          var container = $('<div>', {html: image});
+          var image = $('<img>', {alt: 'User uploaded image', src: e.data});
+          var container = $('<div>', {html: image}).hide();
           $('#images').prepend(container);
           image.load(function(){
-              image.show('blind', {}, 1000);
+              container.show('blind', {}, 1000);
           });
       };
   }
