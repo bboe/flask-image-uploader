@@ -1,6 +1,7 @@
 import flask
 import json
 import os
+import time
 from PIL import Image, ImageFile
 from gevent.event import AsyncResult, Timeout
 from gevent.queue import Empty, Queue
@@ -13,6 +14,7 @@ DATA_DIR = 'data'
 KEEP_ALIVE_DELAY = 25
 MAX_IMAGE_SIZE = 800, 600
 MAX_IMAGES = 10
+MAX_DURATION = 300
 
 app = flask.Flask(__name__, static_folder=DATA_DIR)
 broadcast_queue = Queue()
@@ -44,8 +46,12 @@ def receive():
     yields messages sent by `broadcast`.
 
     """
+    now = time.time()
+    end = now + MAX_DURATION
     tmp = None
-    while True:
+    # Heroku doesn't notify when client disconnect so we have to impose a
+    # maximum connection duration.
+    while now < end:
         if not tmp:
             tmp = AsyncResult()
             broadcast_queue.put(tmp)
@@ -54,6 +60,7 @@ def receive():
             tmp = None
         except Timeout:
             yield ''
+        now = time.time()
 
 
 def save_normalized_image(path, data):
@@ -72,11 +79,15 @@ def save_normalized_image(path, data):
 
 
 def event_stream(client):
+    force_disconnect = False
     try:
         for message in receive():
             yield 'data: {0}\n\n'.format(message)
+        print('{0} force closing stream'.format(client))
+        force_disconnect = True
     finally:
-        print('{0} disconnected from stream'.format(client))
+        if not force_disconnect:
+            print('{0} disconnected from stream'.format(client))
 
 
 @app.route('/post', methods=['POST'])
