@@ -100,8 +100,8 @@ def post():
         if save_normalized_image(target, flask.request.data):
             broadcast(message)  # Notify subscribers of completion
     except Exception as e:  # Output errors
-        print e
-    return ''
+        return '{0}'.format(e)
+    return 'success'
 
 
 @app.route('/stream')
@@ -147,18 +147,25 @@ def home():
   a {
     color: #fff;
   }
+
+  .notice {
+    font-size: 80%%;
+  }
 </style>
 <h3>Image Uploader</h3>
 <p>Upload an image for everyone to see. Valid images are pushed to everyone
 currently connected, and only the most recent %s images are saved.</p>
 <p>The complete source for this Flask web service can be found at:
 <a href="https://github.com/bboe/flask-image-uploader">https://github.com/bboe/flask-image-uploader</a></p>
-<p>Disclaimer: The author of this application accepts no responsibility for the
+<p class="notice">Disclaimer: The author of this application accepts no responsibility for the
 images uploaded to this web service. To discourage the submission of obscene images, IP
 addresses will be visibly associated with uploaded images.</p>
 <noscript>Note: You must have javascript enabled in order to upload and
 dynamically view new images.</noscript>
-<p>Select an image: <input id="file" type="file" /></p>
+<fieldset>
+  <p id="status">Select an image</p>
+  <input id="file" type="file" />
+</fieldset>
 <h3>Uploaded Images (updated in real-time)</h3>
 <div id="images">%s</div>
 <script>
@@ -168,7 +175,6 @@ dynamically view new images.</noscript>
           if (e.data == '')
               return;
           var data = $.parseJSON(e.data);
-          console.log(data);
           var upload_message = 'Image uploaded by ' + data['ip_addr'];
           var image = $('<img>', {alt: upload_message, src: data['src']});
           var container = $('<div>').hide();
@@ -181,9 +187,12 @@ dynamically view new images.</noscript>
       };
   }
   $('#file').change(function(e){
-      var xhr = new XMLHttpRequest();
-      xhr.open('POST', '/post', true);
-      xhr.send(e.target.files[0]);
+      $.ajax({url: '/post', processData: false, type: 'POST',
+              contentType: 'application/octet-stream', data: e.target.files[0]
+      }).done(function(data) {
+           $('#status').html('upload complete: ' + data + '<br/>Select an image');
+      });
+      $('#status').text('uploading image');
       e.target.value = '';
   });
   sse();
