@@ -63,6 +63,11 @@ def receive():
         now = time.time()
 
 
+def safe_addr(ip_addr):
+    """Strip of the trailing two octets of the IP address."""
+    return '.'.join(ip_addr.split('.')[:2] + ['xxx', 'xxx'])
+
+
 def save_normalized_image(path, data):
     image_parser = ImageFile.Parser()
     try:
@@ -95,7 +100,7 @@ def post():
     sha1sum = sha1(flask.request.data).hexdigest()
     target = os.path.join(DATA_DIR, '{0}.jpg'.format(sha1sum))
     message = json.dumps({'src': target,
-                          'ip_addr': flask.request.access_route[0]})
+                          'ip_addr': safe_addr(flask.request.access_route[0])})
     try:
         if save_normalized_image(target, flask.request.data):
             broadcast(message)  # Notify subscribers of completion
@@ -159,7 +164,7 @@ currently connected, and only the most recent %s images are saved.</p>
 <a href="https://github.com/bboe/flask-image-uploader">https://github.com/bboe/flask-image-uploader</a></p>
 <p class="notice">Disclaimer: The author of this application accepts no responsibility for the
 images uploaded to this web service. To discourage the submission of obscene images, IP
-addresses will be visibly associated with uploaded images.</p>
+addresses with the last two octets hidden will be visibly associated with uploaded images.</p>
 <noscript>Note: You must have javascript enabled in order to upload and
 dynamically view new images.</noscript>
 <fieldset>
@@ -191,6 +196,8 @@ dynamically view new images.</noscript>
               contentType: 'application/octet-stream', data: e.target.files[0]
       }).done(function(data) {
            $('#status').html('upload complete: ' + data + '<br/>Select an image');
+      }).fail(function(data, status) {
+           $('#status').html('upload failed<br/>Select an image');
       });
       $('#status').text('uploading image');
       e.target.value = '';
