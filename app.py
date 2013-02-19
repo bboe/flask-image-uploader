@@ -1,4 +1,5 @@
 import flask
+import json
 import os
 from PIL import Image, ImageFile
 from gevent.event import AsyncResult, Timeout
@@ -9,7 +10,7 @@ from stat import S_ISREG, ST_CTIME, ST_MODE
 
 
 DATA_DIR = 'data'
-KEEP_ALIVE_DELAY = 45
+KEEP_ALIVE_DELAY = 30
 MAX_IMAGE_SIZE = 800, 600
 MAX_IMAGES = 10
 
@@ -82,9 +83,10 @@ def event_stream(client):
 def post():
     sha1sum = sha1(flask.request.data).hexdigest()
     target = os.path.join(DATA_DIR, '{0}.jpg'.format(sha1sum))
+    message = json.dumps({'src': target, 'ip_addr': flask.request.remote_addr})
     try:
         if save_normalized_image(target, flask.request.data):
-            broadcast(target)  # Notify subscribers of completion
+            broadcast(message)  # Notify subscribers of completion
     except Exception as e:  # Output errors
         print e
     return ''
@@ -139,6 +141,9 @@ def home():
 currently connected, and only the most recent %s images are saved.</p>
 <p>The complete source for this Flask web service can be found at:
 <a href="https://github.com/bboe/flask-image-uploader">https://github.com/bboe/flask-image-uploader</a></p>
+<p>Disclaimer: The author of this application accepts no responsibility for the
+images uploaded to this web service. To discourage the submission of obscene images, IP
+addresses will be visibly associated with uploaded images.</p>
 <noscript>Note: You must have javascript enabled in order to upload and
 dynamically view new images.</noscript>
 <p>Select an image: <input id="file" type="file" /></p>
@@ -150,9 +155,13 @@ dynamically view new images.</noscript>
       source.onmessage = function(e) {
           if (e.data == '')
               return;
-          console.log(e.data);
-          var image = $('<img>', {alt: 'User uploaded image', src: e.data});
-          var container = $('<div>', {html: image}).hide();
+          var data = $.parseJSON(e.data);
+          console.log(data);
+          var upload_message = 'Image uploaded by ' + data['ip_addr'];
+          var image = $('<img>', {alt: upload_message, src: data['src']});
+          var container = $('<div>').hide();
+          container.append($('<div>', {text: upload_message}));
+          container.append(image);
           $('#images').prepend(container);
           image.load(function(){
               container.show('blind', {}, 1000);
