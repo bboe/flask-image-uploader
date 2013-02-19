@@ -83,7 +83,8 @@ def event_stream(client):
 def post():
     sha1sum = sha1(flask.request.data).hexdigest()
     target = os.path.join(DATA_DIR, '{0}.jpg'.format(sha1sum))
-    message = json.dumps({'src': target, 'ip_addr': flask.request.remote_addr})
+    message = json.dumps({'src': target,
+                          'ip_addr': flask.request.access_route[0]})
     try:
         if save_normalized_image(target, flask.request.data):
             broadcast(message)  # Notify subscribers of completion
@@ -94,7 +95,7 @@ def post():
 
 @app.route('/stream')
 def stream():
-    return flask.Response(event_stream(flask.request.remote_addr),
+    return flask.Response(event_stream(flask.request.access_route[0]),
                           mimetype='text/event-stream')
 
 
