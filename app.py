@@ -138,6 +138,7 @@ def home():
 <meta charset="utf-8" />
 <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
 <script src="//ajax.googleapis.com/ajax/libs/jqueryui/1.10.1/jquery-ui.min.js"></script>
+<link rel="stylesheet" href="//ajax.googleapis.com/ajax/libs/jqueryui/1.10.1/themes/vader/jquery-ui.css" />
 <style>
   body {
     max-width: 800px;
@@ -169,6 +170,7 @@ addresses with the last two octets hidden will be visibly associated with upload
 dynamically view new images.</noscript>
 <fieldset>
   <p id="status">Select an image</p>
+  <div id="progressbar"></div>
   <input id="file" type="file" />
 </fieldset>
 <h3>Uploaded Images (updated in real-time)</h3>
@@ -192,15 +194,31 @@ dynamically view new images.</noscript>
       };
   }
   $('#file').change(function(e){
-      $.ajax({url: '/post', processData: false, type: 'POST',
-              contentType: 'application/octet-stream', data: e.target.files[0]
-      }).done(function(data) {
-           $('#status').html('upload complete: ' + data + '<br/>Select an image');
-      }).fail(function(data, status) {
-           $('#status').html('upload failed<br/>Select an image');
+      var progressbar = $('#progressbar');
+      var status = $('#status');
+      var xhr = new XMLHttpRequest();
+      xhr.upload.addEventListener('loadstart', function(e1){
+          status.text('uploading image');
+          e.target.value = '';
+          progressbar.progressbar({max: e1.total});
       });
-      $('#status').text('uploading image');
-      e.target.value = '';
+      xhr.upload.addEventListener('progress', function(e1){
+          if (progressbar.progressbar('option', 'max') == 0)
+              progressbar.progressbar('option', 'max', e1.total);
+          progressbar.progressbar('value', e1.loaded);
+      });
+      xhr.onreadystatechange = function(e1) {
+          if (this.readyState == 4)  {
+              if (this.status == 200)
+                  var text = 'upload complete: ' + this.responseText;
+              else
+                  var text = 'upload failed: code ' + this.status;
+              status.html(text + '<br/>Select an image');
+              progressbar.progressbar('destroy');
+          }
+      };
+      xhr.open('POST', '/post', true);
+      xhr.send(e.target.files[0]);
   });
   sse();
 </script>
