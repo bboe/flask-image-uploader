@@ -157,6 +157,26 @@ def home():
   .notice {
     font-size: 80%%;
   }
+
+
+#drop {
+    font-weight: bold;
+    text-align: center;
+    padding: 1em 0;
+    margin: 1em 0;
+    color: #555;
+    border: 2px dashed #555;
+    border-radius: 7px;
+    cursor: default;
+}
+
+#drop.hover {
+    color: #f00;
+    border-color: #f00;
+    border-style: solid;
+    box-shadow: inset 0 3px 4px #888;
+}
+
 </style>
 <h3>Image Uploader</h3>
 <p>Upload an image for everyone to see. Valid images are pushed to everyone
@@ -172,6 +192,7 @@ dynamically view new images.</noscript>
   <p id="status">Select an image</p>
   <div id="progressbar"></div>
   <input id="file" type="file" />
+  <div id="drop">or drop image here</div>
 </fieldset>
 <h3>Uploaded Images (updated in real-time)</h3>
 <div id="images">%s</div>
@@ -193,13 +214,12 @@ dynamically view new images.</noscript>
           });
       };
   }
-  $('#file').change(function(e){
+  function file_select_handler(to_upload) {
       var progressbar = $('#progressbar');
       var status = $('#status');
       var xhr = new XMLHttpRequest();
       xhr.upload.addEventListener('loadstart', function(e1){
           status.text('uploading image');
-          e.target.value = '';
           progressbar.progressbar({max: e1.total});
       });
       xhr.upload.addEventListener('progress', function(e1){
@@ -218,7 +238,24 @@ dynamically view new images.</noscript>
           }
       };
       xhr.open('POST', '/post', true);
-      xhr.send(e.target.files[0]);
+      xhr.send(to_upload);
+  };
+  function handle_hover(e) {
+      e.originalEvent.stopPropagation();
+      e.originalEvent.preventDefault();
+      e.target.className = (e.type == 'dragleave' || e.type == 'drop') ? '' : 'hover';
+  }
+
+  $('#drop').bind('drop', function(e) {
+      handle_hover(e);
+      if (e.originalEvent.dataTransfer.files.length < 1) {
+          return;
+      }
+      file_select_handler(e.originalEvent.dataTransfer.files[0]);
+  }).bind('dragenter dragleave dragover', handle_hover);
+  $('#file').change(function(e){
+      file_select_handler(e.target.files[0]);
+      e.target.value = '';
   });
   sse();
 </script>
