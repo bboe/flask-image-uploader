@@ -3,8 +3,9 @@ import json
 import os
 import time
 from PIL import Image, ImageFile
-from gevent.event import AsyncResult, Timeout
+from gevent.event import AsyncResult
 from gevent.queue import Empty, Queue
+from gevent.timeout import Timeout
 from shutil import rmtree
 from hashlib import sha1
 from stat import S_ISREG, ST_CTIME, ST_MODE
