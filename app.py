@@ -1,14 +1,17 @@
-import flask
+"""An example flask application demonstrating server-sent events."""
+
+from hashlib import sha1
+from shutil import rmtree
+from stat import S_ISREG, ST_CTIME, ST_MODE
 import json
 import os
 import time
+
 from PIL import Image, ImageFile
 from gevent.event import AsyncResult
 from gevent.queue import Empty, Queue
 from gevent.timeout import Timeout
-from shutil import rmtree
-from hashlib import sha1
-from stat import S_ISREG, ST_CTIME, ST_MODE
+import flask
 
 
 DATA_DIR = 'data'
@@ -17,8 +20,8 @@ MAX_IMAGE_SIZE = 800, 600
 MAX_IMAGES = 10
 MAX_DURATION = 300
 
-app = flask.Flask(__name__, static_folder=DATA_DIR)
-broadcast_queue = Queue()
+APP = flask.Flask(__name__, static_folder=DATA_DIR)
+BROADCAST_QUEUE = Queue()
 
 
 try:  # Reset saved files on each start
@@ -33,10 +36,10 @@ def broadcast(message):
     waiting = []
     try:
         while True:
-            waiting.append(broadcast_queue.get(block=False))
+            waiting.append(BROADCAST_QUEUE.get(block=False))
     except Empty:
         pass
-    print('Broadcasting {0} messages'.format(len(waiting)))
+    print('Broadcasting {} messages'.format(len(waiting)))
     for item in waiting:
         item.set(message)
 
@@ -50,12 +53,12 @@ def receive():
     now = time.time()
     end = now + MAX_DURATION
     tmp = None
-    # Heroku doesn't notify when client disconnect so we have to impose a
+    # Heroku doesn't notify when clients disconnect so we have to impose a
     # maximum connection duration.
     while now < end:
         if not tmp:
             tmp = AsyncResult()
-            broadcast_queue.put(tmp)
+            BROADCAST_QUEUE.put(tmp)
         try:
             yield tmp.get(timeout=KEEP_ALIVE_DELAY)
             tmp = None
@@ -65,17 +68,17 @@ def receive():
 
 
 def safe_addr(ip_addr):
-    """Strip of the trailing two octets of the IP address."""
+    """Strip off the trailing two octets of the IP address."""
     return '.'.join(ip_addr.split('.')[:2] + ['xxx', 'xxx'])
 
 
 def save_normalized_image(path, data):
+    """Generate an RGB thumbnail of the provided image."""
     image_parser = ImageFile.Parser()
     try:
         image_parser.feed(data)
         image = image_parser.close()
     except IOError:
-        raise
         return False
     image.thumbnail(MAX_IMAGE_SIZE, Image.ANTIALIAS)
     if image.mode != 'RGB':
@@ -85,39 +88,43 @@ def save_normalized_image(path, data):
 
 
 def event_stream(client):
+    """Yield messages as they come in."""
     force_disconnect = False
     try:
         for message in receive():
-            yield 'data: {0}\n\n'.format(message)
-        print('{0} force closing stream'.format(client))
+            yield 'data: {}\n\n'.format(message)
+        print('{} force closing stream'.format(client))
         force_disconnect = True
     finally:
         if not force_disconnect:
-            print('{0} disconnected from stream'.format(client))
+            print('{} disconnected from stream'.format(client))
 
 
-@app.route('/post', methods=['POST'])
+@APP.route('/post', methods=['POST'])
 def post():
+    """Handle image uploads."""
     sha1sum = sha1(flask.request.data).hexdigest()
-    target = os.path.join(DATA_DIR, '{0}.jpg'.format(sha1sum))
+    target = os.path.join(DATA_DIR, '{}.jpg'.format(sha1sum))
     message = json.dumps({'src': target,
                           'ip_addr': safe_addr(flask.request.access_route[0])})
     try:
         if save_normalized_image(target, flask.request.data):
             broadcast(message)  # Notify subscribers of completion
-    except Exception as e:  # Output errors
-        return '{0}'.format(e)
+    except Exception as exception:  # Output errors
+        return '{}'.format(exception)
     return 'success'
 
 
-@app.route('/stream')
+@APP.route('/stream')
 def stream():
+    """Handle long-lived SSE streams."""
     return flask.Response(event_stream(flask.request.access_route[0]),
                           mimetype='text/event-stream')
 
 
-@app.route('/')
+@APP.route('/')
 def home():
+    """Provide the primary view along with its javascript."""
     # Code adapted from: http://stackoverflow.com/questions/168409/
     image_infos = []
     for filename in os.listdir(DATA_DIR):
@@ -131,7 +138,7 @@ def home():
         if i >= MAX_IMAGES:
             os.unlink(path)
             continue
-        images.append('<div><img alt="User uploaded image" src="{0}" /></div>'
+        images.append('<div><img alt="User uploaded image" src="{}" /></div>'
                       .format(path))
     return """
 <!doctype html>
@@ -270,9 +277,9 @@ dynamically view new images.</noscript>
     var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
   })();
 </script>
-""" % (MAX_IMAGES, '\n'.join(images))
+""" % (MAX_IMAGES, '\n'.join(images))  # noqa
 
 
 if __name__ == '__main__':
-    app.debug = True
-    app.run('0.0.0.0', threaded=True)
+    APP.debug = True
+    APP.run('0.0.0.0', threaded=True)
