@@ -1,4 +1,4 @@
 Flask==1.0.2
-Pillow==5.4.1
+Pillow==8.2.0
 gevent==1.4.0
 gunicorn==19.9.0
