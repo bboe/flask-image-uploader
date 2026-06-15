@@ -1,0 +1,55 @@
+repos:
+  - hooks:
+      - id: docstrfmt
+        require_serial: true
+    repo: https://github.com/LilSpazJoekp/docstrfmt
+    rev: 8688ba6420d7b5ca95a8ba0edf8a9953babdc3da  # frozen: v2.1.1
+
+  - hooks:
+      - id: codesorter
+    repo: https://github.com/praw-dev/CodeSorter
+    rev: 8aa6144b41e0f789124b2ca377d246ffd1fbb317  # frozen: v0.2.7
+
+  - hooks:
+      - id: auto-walrus
+    repo: https://github.com/MarcoGorelli/auto-walrus
+    rev: 1743edbed52f3d61886b59d98a27164a8af29c0d  # frozen: 0.4.1
+
+  - hooks:
+      - args: [--fix]
+        id: ruff-check
+      - id: ruff-format
+    repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: 3b3f7c3f57fe9925356faf5fe6230835138be230  # frozen: v0.15.17
+
+  - hooks:
+      - files: ^(.*\.toml)$
+        id: toml-sort-fix
+    repo: https://github.com/pappasam/toml-sort
+    rev: 2970ae9bb7124fe5117a27e10c10d2da051ce05a  # frozen: v0.24.4
+
+  - hooks:
+      - id: check-added-large-files
+      - id: check-executables-have-shebangs
+      - id: check-shebang-scripts-are-executable
+      - id: check-toml
+      - id: check-yaml
+      - id: end-of-file-fixer
+      - args: [--fix=lf]
+        id: mixed-line-ending
+      - args: [--pytest-test-first]
+        files: ^tests/.*\.py$
+        id: name-tests-test
+      - id: no-commit-to-branch
+      - id: trailing-whitespace
+    repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: 3e8a8703264a2f4a69428a0aa4dcb512790b2c8c  # frozen: v6.0.0
+
+  - hooks:
+      - entry: uv run --group dev pyright
+        id: pyright
+        language: system
+        name: pyright
+        pass_filenames: false
+        types: [python]
+    repo: local

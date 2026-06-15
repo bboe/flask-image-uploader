@@ -1,2 +1,13 @@
+*.egg-info/
 *.pyc
-data
+*~
+.coverage
+.pytest_cache/
+.ruff_cache/
+.venv/
+__pycache__/
+_build/
+build/
+data/
+dist/
+htmlcov/
