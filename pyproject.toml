@@ -1,0 +1,80 @@
+[build-system]
+build-backend = "hatchling.build"
+requires = ["hatch-vcs", "hatchling"]
+
+[dependency-groups]
+dev = ["pyright"]
+test = ["pytest"]
+
+[project]
+authors = [{name = "Bryce Boe", email = "bbzbryce@gmail.com"}]
+classifiers = [
+  "Framework :: Flask",
+  "License :: OSI Approved :: BSD License",
+  "Private :: Do Not Upload",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14"
+]
+dependencies = [
+  "flask",
+  "gevent",
+  "gunicorn",
+  "pillow"
+]
+description = "A Flask app demonstrating HTML Server-Sent Events via real-time image uploads."
+dynamic = ["version"]
+license = "BSD-2-Clause"
+name = "flask-image-uploader"
+readme = "README.md"
+requires-python = ">=3.10"
+
+[project.scripts]
+flask-image-uploader = "flask_image_uploader:main"
+
+[project.urls]
+Source = "https://github.com/bboe/flask-image-uploader"
+
+[tool.hatch.build.targets.wheel]
+include = ["flask_image_uploader.py"]
+
+[tool.hatch.version]
+source = "vcs"
+
+[tool.pyright]
+include = ["flask_image_uploader.py"]
+pythonVersion = "3.10"
+typeCheckingMode = "strict"
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+preview = true
+target-version = "py310"
+
+[tool.ruff.lint]
+ignore = [
+  "CPY001", # we do not require a copyright notice at the top of every file
+  "D203", # incompatible with D211
+  "D213" # incompatible with D212
+]
+select = ["ALL"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = [
+  "ANN", # tests do not require type annotations
+  "D", # tests do not require docstrings
+  "INP001", # tests are not part of a package
+  "PLR2004", # tests may compare against magic values
+  "RUF076", # autouse fixtures are intentional in tests
+  "S101", # tests use assert
+  "SLF001" # tests may access private members
+]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"

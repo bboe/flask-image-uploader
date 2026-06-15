@@ -1,4 +1,0 @@
-Flask==2.2.5
-Pillow==9.3.0
-gevent==1.4.0
-gunicorn==19.9.0
